@@ -1,4 +1,4 @@
-# python web 搭建联系
+# python web 搭建练习
 环境为python 3.6 
 
 其中网站开发所需要的第三方库：
