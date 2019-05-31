@@ -13,22 +13,21 @@ import aiomysql
 def log(sql, args=()):
     logging.info('SQL: %s' % sql)
 
-
 async def create_pool(loop, **kw):
     logging.info('create database connection pool...')
     global __pool
     __pool = await aiomysql.create_pool(
-            host=kw.get('host', 'localhost'),
-            port=kw.get('port', 3306),
-            user=kw['user'],
-            password=kw['password'],
-            db=kw['db'],
-            charset=kw.get('charset', 'utf8'),
-            autocommit=kw.get('autocommit', True),
-            maxsize=kw.get('maxsize', 10),
-            minsize=kw.get('minsize', 1),
-            loop=loop
-            )
+        host=kw.get('host', 'localhost'),
+        port=kw.get('port', 3306),
+        user=kw['user'],
+        password=kw['password'],
+        db=kw['db'],
+        charset=kw.get('charset', 'utf8'),
+        autocommit=kw.get('autocommit', True),
+        maxsize=kw.get('maxsize', 10),
+        minsize=kw.get('minsize', 1),
+        loop=loop
+    )
 
 async def select(sql, args, size=None):
     log(sql, args)
@@ -63,14 +62,15 @@ def create_args_string(num):
     return ', '.join(L)
 
 class ModelMetaclass(type):
+
     def __new__(cls, name, bases, attrs):
-        # 排除Model类本身
+        # 排除Model类本身:
         if name=='Model':
             return type.__new__(cls, name, bases, attrs)
-        #获取table名称：
+        # 获取table名称:
         tableName = attrs.get('__table__', None) or name
         logging.info('found model: %s (table: %s)' % (name, tableName))
-        #获取所有的Field和主键名：
+        # 获取所有的Field和主键名:
         mappings = dict()
         fields = []
         primaryKey = None
@@ -79,7 +79,7 @@ class ModelMetaclass(type):
                 logging.info('  found mapping: %s ==> %s' % (k, v))
                 mappings[k] = v
                 if v.primary_key:
-                    #找到主键：
+                    # 找到主键:
                     if primaryKey:
                         raise RuntimeError('Duplicate primary key for field: %s' % k)
                     primaryKey = k
@@ -89,7 +89,7 @@ class ModelMetaclass(type):
             raise RuntimeError('Primary key not found.')
         for k in mappings.keys():
             attrs.pop(k)
-        escaped_fields = list(map(lambda f: "'%s'" % f, fields))
+        escaped_fields = list(map(lambda f: '`%s`' % f, fields))
         attrs['__mappings__'] = mappings # 保存属性和列的映射关系
         attrs['__table__'] = tableName
         attrs['__primary_key__'] = primaryKey # 主键属性名
@@ -102,22 +102,22 @@ class ModelMetaclass(type):
         return type.__new__(cls, name, bases, attrs)
 
 class Model(dict, metaclass=ModelMetaclass):
-    
+
     def __init__(self, **kw):
         super(Model, self).__init__(**kw)
-        
+
     def __getattr__(self, key):
         try:
             return self[key]
         except KeyError:
             raise AttributeError(r"'Model' object has no attribute '%s'" % key)
-    
+
     def __setattr__(self, key, value):
         self[key] = value
-    
+
     def getValue(self, key):
         return getattr(self, key, None)
-    
+
     def getValueOrDefault(self, key):
         value = getattr(self, key, None)
         if value is None:
@@ -130,7 +130,7 @@ class Model(dict, metaclass=ModelMetaclass):
     
     @classmethod
     async def findAll(cls, where=None, args=None, **kw):
-        ##find objects bu where clause
+        ## find objects by where clause
         sql = [cls.__select__]
         if where:
             sql.append('where')
@@ -141,8 +141,8 @@ class Model(dict, metaclass=ModelMetaclass):
         if orderBy:
             sql.append('order by')
             sql.append(orderBy)
-        limit = kw.get('limit')
-        if limit is None:
+        limit = kw.get('limit', None)
+        if limit is not None:
             sql.append('limit')
             if isinstance(limit, int):
                 sql.append('?')
@@ -154,7 +154,7 @@ class Model(dict, metaclass=ModelMetaclass):
                 raise ValueError('Invalid limit value: %s' % str(limit))
         rs = await select(' '.join(sql), args)
         return [cls(**r) for r in rs]
-    
+
     @classmethod
     async def findNumber(cls, selectField, where=None, args=None):
         ## find number by select and where
@@ -181,14 +181,14 @@ class Model(dict, metaclass=ModelMetaclass):
         rows = await execute(self.__insert__, args)
         if rows != 1:
             logging.warn('failed to insert record: affected rows: %s' % rows)
-    
+
     async def update(self):
         args = list(map(self.getValue, self.__fields__))
         args.append(self.getValue(self.__primary_key__))
         rows = await execute(self.__update__, args)
         if rows != 1:
             logging.warn('failed to update by primary key: affected rows: %s' % rows)
-    
+
     async def remove(self):
         args = [self.getValue(self.__primary_key__)]
         rows = await execute(self.__delete__, args)
@@ -196,11 +196,11 @@ class Model(dict, metaclass=ModelMetaclass):
             logging.warn('failed to remove by primary key: affected rows: %s' % rows)
 
 class Field(object):
-    
+
     def __init__(self, name, column_type, primary_key, default):
         self.name = name
         self.column_type = column_type
-        self.primary_key  = primary_key
+        self.primary_key = primary_key
         self.default = default
 
     def __str__(self):
@@ -210,14 +210,14 @@ class StringField(Field):
 
     def __init__(self, name=None, primary_key=False, default=None, ddl='varchar(100)'):
         super().__init__(name, ddl, primary_key, default)
-    
+
 class BooleanField(Field):
-    
+
     def __init__(self, name=None, default=False):
         super().__init__(name, 'boolean', False, default)
 
 class IntegerField(Field):
-    
+
     def __init__(self, name=None, primary_key=False, default=0):
         super().__init__(name, 'bigint', primary_key, default)
 
