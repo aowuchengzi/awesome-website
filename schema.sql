@@ -1,12 +1,12 @@
---schema.sql
+-- schema.sql
 
 drop database if exists awesome;
 
-create database awesome
+create database awesome;
 
-use awesome
+use awesome;
 
-create user 'www-data'@'localhost' identified by 'wwww-data';
+create user 'www-data'@'localhost' identified by 'www-data';
 alter user 'www-data'@'localhost' identified with mysql_native_password by 'www-data';
 grant select, insert, update, delete on awesome.* to 'www-data'@'localhost';
 
