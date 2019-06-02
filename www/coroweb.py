@@ -1,5 +1,7 @@
 import asyncio, os, inspect, logging, functools
+
 from urllib import parse
+
 from aiohttp import web
 
 ## apis是处理分页的模块,代码在本章页面末尾,请将apis.py放在www下以防报错
@@ -8,7 +10,7 @@ from apis import APIError
 
 ## 编写装饰函数 @get()
 def get(path):
-    ##define decorator @get('/path')
+    ## Define decorator @get('/path')
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kw):
@@ -18,9 +20,9 @@ def get(path):
         return wrapper
     return decorator
 
-##编写装饰函数 @post()
+## 编写装饰函数 @post()
 def post(path):
-    ##define decorator @post('/path')
+    ## Define decorator @post('/path')
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kw):
@@ -30,10 +32,10 @@ def post(path):
         return wrapper
     return decorator
 
-##以下是RequestHandler 需要定义的一些函数
+## 以下是RequestHandler需要定义的一些函数
 def get_required_kw_args(fn):
     args = []
-    params = inspect.signature(fn).parameters #获取定义好的函数fn的注解
+    params = inspect.signature(fn).parameters #获取函数的注解
     for name, param in params.items():
         if param.kind == inspect.Parameter.KEYWORD_ONLY and param.default == inspect.Parameter.empty:
             args.append(name)
@@ -71,7 +73,7 @@ def has_request_arg(fn):
             raise ValueError('request parameter must be the last named parameter in function: %s%s' % (fn.__name__, str(sig)))
     return found
 
-##定义RequestHandler从URL函数中分析其需要接受的参数
+## 定义RequestHandler从URL函数中分析其需要接受的参数
 class RequestHandler(object):
 
     def __init__(self, app, fn):
@@ -123,7 +125,7 @@ class RequestHandler(object):
                 kw[k] = v
         if self._has_request_arg:
             kw['request'] = request
-        #check required kw:
+        # check required kw:
         if self._required_kw_args:
             for name in self._required_kw_args:
                 if not name in kw:
@@ -151,7 +153,7 @@ def add_route(app, fn):
     logging.info('add route %s %s => %s(%s)' % (method, path, fn.__name__, ', '.join(inspect.signature(fn).parameters.keys())))
     app.router.add_route(method, path, RequestHandler(app, fn))
 
-# 定义add_routes函数，自动把handler模块的所有符合条件的URL函数注册了
+## 定义add_routes函数，自动把handler模块的所有符合条件的URL函数注册了
 def add_routes(app, module_name):
     n = module_name.rfind('.')
     if n == (-1):
