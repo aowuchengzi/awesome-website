@@ -82,7 +82,7 @@ async def response_factory(app, handler):
         if isinstance(r, bytes):
             resp = web.Response(body=r)
             resp.content_type = 'application/octet-stream'
-            reurn resp
+            return resp
         if isinstance(r, str):
             if r.startswith('redirect:'):
                 return web.HTTPFound(r[9:])
