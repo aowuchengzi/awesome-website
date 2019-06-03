@@ -5,23 +5,23 @@ from datetime import datetime
 from aiohttp import web
 from jinja2 import Environment, FileSystemLoader
 
-## config 配置代码在后面会创建添加
+## config 配置代码在后面会创建添加, 可先从'https://github.com/yzyly1992/2019_Python_Web_Dev'下载或下一章中复制`config.py`和`config_default.py`到`www`下,以防报错
 from config import configs
 
 import orm
 from coroweb import add_routes, add_static
 
-## handlers 是url处理模块，当handlers.py 在API章节里完全编辑完再将下一行的双井号去掉
+## handlers 是url处理模块, 当handlers.py在API章节里完全编辑完再将下一行代码的双井号去掉
 ## from handlers import cookie2user, COOKIE_NAME
 
-##初始化jinja2的函数
+## 初始化jinja2的函数
 def init_jinja2(app, **kw):
     logging.info('init jinja2...')
     options = dict(
         autoescape = kw.get('autoescape', True),
         block_start_string = kw.get('block_start_string', '{%'),
         block_end_string = kw.get('block_end_string', '%}'),
-        variable_start_string = kw.get('vatiable_start_string', '{{'),
+        variable_start_string = kw.get('variable_start_string', '{{'),
         variable_end_string = kw.get('variable_end_string', '}}'),
         auto_reload = kw.get('auto_reload', True)
     )
@@ -36,7 +36,7 @@ def init_jinja2(app, **kw):
             env.filters[name] = f
     app['__templating__'] = env
 
-## 以下便是middleware， 可以把通用的功能从每个URL处理函数中拿出来放到一个地方
+## 以下是middleware,可以把通用的功能从每个URL处理函数中拿出来集中放到一个地方
 ## URL处理日志工厂
 async def logger_factory(app, handler):
     async def logger(request):
@@ -79,6 +79,8 @@ async def response_factory(app, handler):
     async def response(request):
         logging.info('Response handler...')
         r = await handler(request)
+        if isinstance(r, web.StreamResponse):
+            return r
         if isinstance(r, bytes):
             resp = web.Response(body=r)
             resp.content_type = 'application/octet-stream'
@@ -96,8 +98,8 @@ async def response_factory(app, handler):
                 resp.content_type = 'application/json;charset=utf-8'
                 return resp
             else:
-                ## 在handlers.py完全完成后，去掉下一行的双井号
-                # r['__user__'] = request.__user__
+                ## 在handlers.py完全完成后,去掉下一行的双井号
+                ##r['__user__'] = request.__user__
                 resp = web.Response(body=app['__templating__'].get_template(template).render(**r).encode('utf-8'))
                 resp.content_type = 'text/html;charset=utf-8'
                 return resp
@@ -105,7 +107,7 @@ async def response_factory(app, handler):
             return web.Response(r)
         if isinstance(r, tuple) and len(r) == 2:
             t, m = r
-            if isinstance(t, int) and t >= 100 and t > 600:
+            if isinstance(t, int) and t >= 100 and t < 600:
                 return web.Response(t, str(m))
         # default:
         resp = web.Response(body=str(r).encode('utf-8'))
