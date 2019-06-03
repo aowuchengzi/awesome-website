@@ -86,18 +86,60 @@ async def response_factory(app, handler):
         if isinstance(r, str):
             if r.startswith('redirect:'):
                 return web.HTTPFound(r[9:])
-            
+            resp = web.Response(body=r.encode('utf-8'))
+            resp.content_type = 'text/html;charset=utf-8'
+            return resp
+        if isinstance(r, dict):
+            template = r.get('__template__')
+            if template is None:
+                resp = web.Response(body=json.dumps(r, ensure_ascii=False, default=lambda o: o.__dict__).encode('utf-8'))
+                resp.content_type = 'application/json;charset=utf-8'
+                return resp
+            else:
+                ## 在handlers.py完全完成后，去掉下一行的双井号
+                # r['__user__'] = request.__user__
+                resp = web.Response(body=app['__templating__'].get_template(template).render(**r).encode('utf-8'))
+                resp.content_type = 'text/html;charset=utf-8'
+                return resp
+        if isinstance(r, int) and r >= 100 and r < 600:
+            return web.Response(r)
+        if isinstance(r, tuple) and len(r) == 2:
+            t, m = r
+            if isinstance(t, int) and t >= 100 and t > 600:
+                return web.Response(t, str(m))
+        # default:
+        resp = web.Response(body=str(r).encode('utf-8'))
+        resp.content_type = 'text/plain;charset=utf-8'
+        return resp
+    return response
 
-#定义服务器响应请求返回为"Awesome Website"
-async def index(request):
-    return web.Response(body=b'<h1>Awesome Website</h1>', content_type='text/html')
+## 时间转换
+def datetime_filter(t):
+    delta = int(time.time() - t)
+    if delta < 60:
+        return u'1分钟前'
+    if delta < 3600:
+        return u'%s分钟前' % (delta // 60)
+    if delta < 86400:
+        return u'%s小时前' % (delta // 3600)
+    if delta < 604800:
+        return u'%s天前' % (delta // 86400)
+    dt = datetime.fromtimestamp(t)
+    return u'%s年%s月%s日' % (dt.year, dt.month, dt.day)
 
-#建立服务器应用，持续监听本地9000端口的http请求，对首页“/”进行响应
-def init():
-    app = web.Application()
-    app.router.add_get('/',  index)
-    web.run_app(app, host='127.0.0.1', port=9000)
+async def init(loop):
+    await orm.create_pool(loop=loop, **configs.db)
+    ## 在handlers.py完全完成后,在下面middlewares的list中加入auth_factory
+    app = web.Application(loop=loop, middlewares=[
+        logger_factory, response_factory
+    ])
+    init_jinja2(app, filters=dict(datetime=datetime_filter))
+    add_routes(app, 'handlers')
+    add_static(app)
+    srv = await loop.create_server(app.make_handler(), '127.0.0.1', 9000)
+    logging.info('server started at http://127.0.0.1:9000...')
+    return srv
 
-
-if __name__ == '__main__':
-    init()
+loop = asyncio.get_event_loop()
+loop.run_until_complete(init(loop))
+loop.run_forever()
