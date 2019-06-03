@@ -1,7 +1,92 @@
 # -*- coding: utf-8 -*-
 import logging; logging.basicConfig(level=logging.INFO)
-import asyncio
+import asyncio, os, json, time
+from datetime import datetime
 from aiohttp import web
+from jinja2 import Environment, FileSystemLoader
+
+## config 配置代码在后面会创建添加
+from config import configs
+
+import orm
+from coroweb import add_routes, add_static
+
+## handlers 是url处理模块，当handlers.py 在API章节里完全编辑完再将下一行的双井号去掉
+## from handlers import cookie2user, COOKIE_NAME
+
+##初始化jinja2的函数
+def init_jinja2(app, **kw):
+    logging.info('init jinja2...')
+    options = dict(
+        autoescape = kw.get('autoescape', True),
+        block_start_string = kw.get('block_start_string', '{%'),
+        block_end_string = kw.get('block_end_string', '%}'),
+        variable_start_string = kw.get('vatiable_start_string', '{{'),
+        variable_end_string = kw.get('variable_end_string', '}}'),
+        auto_reload = kw.get('auto_reload', True)
+    )
+    path = kw.get('path', None)
+    if path is None:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+    logging.info('set jinja2 template path: %s' % path)
+    env = Environment(loader=FileSystemLoader(path), **options)
+    filters = kw.get('filters', None)
+    if filters is not None:
+        for name, f in filters.items():
+            env.filters[name] = f
+    app['__templating__'] = env
+
+## 以下便是middleware， 可以把通用的功能从每个URL处理函数中拿出来放到一个地方
+## URL处理日志工厂
+async def logger_factory(app, handler):
+    async def logger(request):
+        logging.info('Request: %s %s' % (request.method, request.path))
+        return (await handler(request))
+    return logger
+
+## 认证处理工厂--把当前用户绑定到request上，并对URL/manage/进行拦截， 检查当前用户时候是管理员身份
+## 需要handlers.py的支持，当handlers.py在API章节里完全编辑完再将下面的代码的双井号去掉
+# async def auth_factory(app, handler):
+#     async def auth(request):
+#         logging.info('check user: %s %s' % (request.method, request.path))
+#         request.__user__ = None
+#         cookie_str = request.cookies.get(COOKIE_NAME)
+#         if cookie_str:
+#             user = await cookie2user(cookie_str)
+#             if user:
+#                 logging.info('set current user: %s' % user.email)
+#                 request.__user__ = user
+#         if request.path.startswith('/manage/') and (request.__user__ is NOne or not request.__user__.admin):
+#             return web.HTTPFound('/signin')
+#         return (await handler(request))
+#     return auth
+
+## 数据处理工厂
+async def data_factory(app, handler):
+    async def parse_data(request):
+        if request.method == 'POST':
+            if request.content_type.startswith('application/json'):
+                request.__data__ = await request.json()
+                logging.info('request json: %s' % str(request.__data__))
+            elif request.content_type.startswith('application/x-www-form-urlencoded'):
+                request.__data__ = await request.post()
+                logging.info('request form: %s' % str(request.__data__))
+        return (await handler(request))
+    return parse_data
+
+## 响应返回处理工厂
+async def response_factory(app, handler):
+    async def response(request):
+        logging.info('Response handler...')
+        r = await handler(request)
+        if isinstance(r, bytes):
+            resp = web.Response(body=r)
+            resp.content_type = 'application/octet-stream'
+            reurn resp
+        if isinstance(r, str):
+            if r.startswith('redirect:'):
+                return web.HTTPFound(r[9:])
+            
 
 #定义服务器响应请求返回为"Awesome Website"
 async def index(request):
