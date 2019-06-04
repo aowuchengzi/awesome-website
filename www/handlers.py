@@ -71,7 +71,7 @@ async def cookie2user(cookie_str):
 async def index(*, page='1'):
     page_index = get_page_index(page)
     num = await Blog.findNumber('count(id)')
-    p = Page(num, page_index=page_index)
+    p = Page(num, page_index)
     if num == 0:
         blogs = []
     else:
@@ -103,7 +103,7 @@ def register():
         '__template__': 'register.html'
     }
 
-## 处理登陆页面URL
+## 处理登录页面URL
 @get('/signin')
 def signin():
     return {
@@ -114,20 +114,20 @@ def signin():
 @post('/api/authenticate')
 async def authenticate(*, email, passwd):
     if not email:
-        raise APIValueError('email', 'Invalid email')
+        raise APIValueError('email', 'Invalid email.')
     if not passwd:
-        raise APIValueError('passwd', 'Invalid password')
+        raise APIValueError('passwd', 'Invalid password.')
     users = await User.findAll('email=?', [email])
     if len(users) == 0:
         raise APIValueError('email', 'Email not exist.')
-        user = users[0]
+    user = users[0]
     # check passwd:
     sha1 = hashlib.sha1()
     sha1.update(user.id.encode('utf-8'))
     sha1.update(b':')
     sha1.update(passwd.encode('utf-8'))
     if user.passwd != sha1.hexdigest():
-        raise APIValueError('passwd', 'Invalid password')
+        raise APIValueError('passwd', 'Invalid password.')
     # authenticate ok, set cookie:
     r = web.Response()
     r.set_cookie(COOKIE_NAME, user2cookie(user, 86400), max_age=86400, httponly=True)
@@ -172,7 +172,7 @@ def manage_create_blog():
     return {
         '__template__': 'manage_blog_edit.html',
         'id': '',
-        'action': 'api/blogs'
+        'action': '/api/blogs'
     }
 
 ## 编辑日志页面
@@ -199,7 +199,7 @@ async def api_comments(*, page='1'):
     num = await Comment.findNumber('count(id)')
     p = Page(num, page_index)
     if num == 0:
-        return dict(page=p,comments=())
+        return dict(page=p, comments=())
     comments = await Comment.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
     return dict(page=p, comments=comments)
 
@@ -242,8 +242,8 @@ async def api_get_users(*, page='1'):
     return dict(page=p, users=users)
 
 ## 定义EMAIL和HASH的格式规范
-_RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\.\-\_]+(\.[a-z0-9\.\-\_]+){1,4}$')
-_RE_SHA1_ = re.compile(r'^[0-9a-f]{40}$')
+_RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$')
+_RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
 
 ## 用户注册API
 @post('/api/users')
@@ -252,7 +252,7 @@ async def api_register_user(*, email, name, passwd):
         raise APIValueError('name')
     if not email or not _RE_EMAIL.match(email):
         raise APIValueError('email')
-    if not passwd or not _RE_SHA1_.match(passwd):
+    if not passwd or not _RE_SHA1.match(passwd):
         raise APIValueError('passwd')
     users = await User.findAll('email=?', [email])
     if len(users) > 0:
@@ -319,7 +319,7 @@ async def api_update_blog(id, request, *, name, summary, content):
 
 ## 删除日志API
 @post('/api/blogs/{id}/delete')
-async def api_delete_blogs(request, *, id):
+async def api_delete_blog(request, *, id):
     check_admin(request)
     blog = await Blog.find(id)
     await blog.remove()
@@ -327,7 +327,7 @@ async def api_delete_blogs(request, *, id):
 
 ## 删除用户API
 @post('/api/users/{id}/delete')
-async def api_delete_users(id ,request):
+async def api_delete_users(id, request):
     check_admin(request)
     id_buff = id
     user = await User.find(id)
@@ -340,16 +340,7 @@ async def api_delete_users(id ,request):
         for comment in comments:
             id = comment.id
             c = await Comment.find(id)
-            c.user_name = c.user_name + '（该用户已被删除）'
+            c.user_name = c.user_name + ' (该用户已被删除)'
             await c.update()
     id = id_buff
     return dict(id=id)
-
-
-# @get('/')
-# async def index(request):
-#     users = await User.findAll()
-#     return {
-#         '__template__': 'test.html',
-#         'users': users
-#     }
