@@ -2,14 +2,13 @@
 
 <!--处理分页导航栏代码-->
 {% macro pagination(page) %}
-    <ul class="uk-pagination uk-flex-center  uk-margin-medium-top uk-margin-large-bottom">
+    <ul class="uk-pagination uk-flex-center uk-margin-medium-top uk-margin-large-bottom">
         {% if page.has_previous %}
-            <li><a href="?page={{ page.page_index - 1}}"><span uk-pagination-previous></span></a></li>
-        <!-- Use <span> instead of <a> tags for active and disabled items -->
+            <li><a href="?page={{ page.page_index - 1 }}"><span uk-pagination-previous></span></a></li>
         {% else %}
             <li class="uk-disabled"><a href="#"><span uk-pagination-previous></span></a></li>
         {% endif %}
-            <li class="uk-active"><span>{{ page.page_index + 1 }}</span></li>
+            <li class="uk-active"><span>{{ page.page_index }}</span></li>
         {% if page.has_next %}
             <li><a href="?page={{ page.page_index + 1 }}"><span uk-pagination-next></span></a></li>
         {% else %}
@@ -31,6 +30,7 @@
     <!--jinja2 title块-->
     <title>{% block title %} ? {% endblock %}| AwesomeDavidBlog</title>
     <link rel="stylesheet" href="/static/css/uikit.min.css">
+    <link rel="stylesheet" href="/static/css/uikit-rtl.min.css">
     <link rel="stylesheet" href="/static/css/awesome.css" />
     <script src="/static/js/jquery.min.js"></script>
     <script src="/static/js/sha1.min.js"></script>
@@ -71,7 +71,7 @@
                     <a href="#0"> {{ __user__.name }}</a>
                     <div class="uk-navbar-dropdown">
                         <ul class="uk-nav uk-navbar-dropdown-nav">
-                            <li><a href="/manage/"> Manage</a></li>
+                            <li><a href="/manage/">Manage</a></li>
                             <li><a href="/signout"> Logout</a></li>
                         </ul>
                     </div>
