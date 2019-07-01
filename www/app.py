@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-__author__ = 'David Yang'
 
 import logging; logging.basicConfig(level=logging.INFO)
 import asyncio, os, json, time

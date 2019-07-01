@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-__author__ = 'David Yang'
 
 import json, logging, inspect, functools
 
