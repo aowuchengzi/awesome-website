@@ -1,14 +1,9 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Wed May 29 20:59:29 2019
 
-@author: 15339
-"""
-import asyncio
-import logging
+__author__ = 'David Yang'
 
-import aiomysql
-
+import asyncio, logging, aiomysql
 
 def log(sql, args=()):
     logging.info('SQL: %s' % sql)
@@ -31,7 +26,6 @@ async def create_pool(loop, **kw):
 
 async def select(sql, args, size=None):
     log(sql, args)
-    global __pool
     with (await __pool) as conn:
         cur = await conn.cursor(aiomysql.DictCursor)
         await cur.execute(sql.replace('?', '%s'), args or ())
@@ -54,12 +48,6 @@ async def execute(sql, args):
         except BaseException as e:
             raise
         return affected
-
-def create_args_string(num):
-    L = []
-    for n in range(num):
-        L.append('?')
-    return ', '.join(L)
 
 class ModelMetaclass(type):
 

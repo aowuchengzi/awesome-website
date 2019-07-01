@@ -1,17 +1,21 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
+__author__ = 'David Yang'
+
 import logging; logging.basicConfig(level=logging.INFO)
 import asyncio, os, json, time
 from datetime import datetime
 from aiohttp import web
 from jinja2 import Environment, FileSystemLoader
 
-## config 配置代码在后面会创建添加, 可先从'https://github.com/yzyly1992/2019_Python_Web_Dev'下载或下一章中复制`config.py`和`config_default.py`到`www`下,以防报错
+## config 配置代码在后面会创建添加, 可先从github下载到www下,以防报错
 from config import configs
 
 import orm
 from coroweb import add_routes, add_static
 
-## handlers 是url处理模块, 当handlers.py在API章节里完全编辑完再将下一行代码的双井号去掉
+## handlers 是url处理模块在后面会创建编写, 可先从github下载到www下,以防报错
 from handlers import cookie2user, COOKIE_NAME
 
 ## 初始化jinja2的函数
@@ -44,8 +48,7 @@ async def logger_factory(app, handler):
         return (await handler(request))
     return logger
 
-## 认证处理工厂--把当前用户绑定到request上，并对URL/manage/进行拦截， 检查当前用户时候是管理员身份
-## 需要handlers.py的支持，当handlers.py在API章节里完全编辑完再将下面的代码的双井号去掉
+## 认证处理工厂--把当前用户绑定到request上，并对URL/manage/进行拦截，检查当前用户是否是管理员身份
 async def auth_factory(app, handler):
     async def auth(request):
         logging.info('check user: %s %s' % (request.method, request.path))
@@ -98,7 +101,6 @@ async def response_factory(app, handler):
                 resp.content_type = 'application/json;charset=utf-8'
                 return resp
             else:
-                ## 在handlers.py完全完成后,去掉下一行的双井号
                 r['__user__'] = request.__user__
                 resp = web.Response(body=app['__templating__'].get_template(template).render(**r).encode('utf-8'))
                 resp.content_type = 'text/html;charset=utf-8'
@@ -131,9 +133,8 @@ def datetime_filter(t):
 
 async def init(loop):
     await orm.create_pool(loop=loop, **configs.db)
-    ## 在handlers.py完全完成后,在下面middlewares的list中加入auth_factory
     app = web.Application(loop=loop, middlewares=[
-        logger_factory, response_factory, auth_factory
+        logger_factory, auth_factory, response_factory
     ])
     init_jinja2(app, filters=dict(datetime=datetime_filter))
     add_routes(app, 'handlers')

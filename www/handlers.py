@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+__author__ = 'David Yang'
+
 import re, time, json, logging, hashlib, base64, asyncio
 
 ## markdown 是处理日志文本的一种格式语法，具体语法使用请百度

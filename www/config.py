@@ -1,8 +1,13 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+__author__ = 'David Yang'
+
 import config_default
 
 class Dict(dict):
     '''
-    支持x.y访问以及赋值模式
+    Simple dict but support access as x.y style.
     '''
     def __init__(self, names=(), values=(), **kw):
         super(Dict, self).__init__(**kw)
@@ -15,7 +20,7 @@ class Dict(dict):
         except KeyError:
             raise AttributeError(r"'Dict' object has no attribute '%s'" % key)
 
-    def __setattr__(self, key,value):
+    def __setattr__(self, key, value):
         self[key] = value
 
 def merge(defaults, override):
@@ -36,12 +41,12 @@ def toDict(d):
         D[k] = toDict(v) if isinstance(v, dict) else v
     return D
 
-configs_ = config_default.configs
+configs = config_default.configs
 
 try:
     import config_override
-    configs_ = merge(configs_, config_override.configs)
+    configs = merge(configs, config_override.configs)
 except ImportError:
     pass
 
-configs = toDict(configs_)
+configs = toDict(configs)
